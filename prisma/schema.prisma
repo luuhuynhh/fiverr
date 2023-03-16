@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model category {
+  category_id   Int    @id @default(autoincrement())
+  category_name String @db.VarChar(255)
+  job           job[]
+}
+
+model hire_job {
+  id                    Int      @id @default(autoincrement())
+  job                   Int
+  employee              Int
+  hire_date             DateTime @db.Date
+  is_solved             Boolean
+  is_done               Boolean
+  job_hire_job_jobTojob job      @relation("hire_job_jobTojob", fields: [job], references: [job_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Hire_Job")
+  user                  user     @relation(fields: [employee], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Hire_User")
+
+  @@index([job], map: "FK_Hire_Job")
+  @@index([employee], map: "FK_Hire_User")
+}
+
+model job {
+  job_id                       Int         @id @default(autoincrement())
+  job_name                     String      @db.VarChar(255)
+  job_price                    Float
+  job_description              String?     @db.Text
+  job_category                 Int?
+  creator                      Int?
+  hire_job_hire_job_jobTojob   hire_job[]  @relation("hire_job_jobTojob")
+  category                     category?   @relation(fields: [job_category], references: [category_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Job_Category_1")
+  user                         user?       @relation(fields: [creator], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Job_User_1")
+  job_image_job_image_jobTojob job_image[] @relation("job_image_jobTojob")
+  review_review_jobTojob       review[]    @relation("review_jobTojob")
+
+  @@index([job_category], map: "FK_Job_Category_1")
+  @@index([creator], map: "FK_Job_User_1")
+}
+
+model job_image {
+  image_id               Int    @id @default(autoincrement())
+  path                   String @db.MediumText
+  job                    Int?
+  job_job_image_jobTojob job?   @relation("job_image_jobTojob", fields: [job], references: [job_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Image_Job")
+
+  @@index([job], map: "FK_Image_Job")
+}
+
+model review {
+  review_id           Int      @id @default(autoincrement())
+  job                 Int
+  author              Int
+  review_date         DateTime @db.Date
+  content             String   @db.Text
+  star                Int
+  job_review_jobTojob job      @relation("review_jobTojob", fields: [job], references: [job_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Comment_Job")
+  user                user     @relation(fields: [author], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Comment_User")
+
+  @@index([job], map: "FK_Comment_Job")
+  @@index([author], map: "FK_Comment_User")
+}
+
+model skill {
+  skill_id   Int    @id @default(autoincrement())
+  skill_name String @db.VarChar(255)
+}
+
+model user {
+  user_id   Int        @id @default(autoincrement())
+  full_name String     @db.VarChar(255)
+  email     String     @db.VarChar(255)
+  password  String     @db.VarChar(255)
+  phone     String?    @db.VarChar(20)
+  birthday  DateTime?  @db.Date
+  gender    String?    @db.VarChar(6)
+  role      String?    @db.VarChar(6)
+  skills    String?    @db.Text
+  avatar    String?    @db.MediumText
+  hire_job  hire_job[]
+  job       job[]
+  review    review[]
+}

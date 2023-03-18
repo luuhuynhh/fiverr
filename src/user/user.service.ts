@@ -10,6 +10,14 @@ export class UserService {
     return this.prisma.user.create({ data: createUserDto });
   }
 
+  findByEmail(email: string) {
+    return this.prisma.user.findFirst({
+      where: {
+        email
+      }
+    })
+  }
+
   findAll() {
     return `This action returns all user`;
   }

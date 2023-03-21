@@ -10,19 +10,64 @@ export class UserService {
     return this.prisma.user.create({ data: createUserDto });
   }
 
-  findAll() {
-    return `This action returns all user`;
+  findByEmail(email: string) {
+    return this.prisma.user.findFirst({
+      where: {
+        email
+      }
+    })
+  }
+
+  findAll({ offset, limit, keyword }) {
+    return this.prisma.user.findMany({
+      where: {
+        ...(keyword && {
+          full_name: {
+            contains: keyword
+          }
+        })
+      },
+      ...(offset && { skip: parseInt(offset) }),
+      ...(limit && { take: parseInt(limit) }),
+      orderBy: { user_id: 'desc' }
+    })
   }
 
   findOne(id: number) {
-    return `This action returns a #${id} user`;
+    return this.prisma.user.findFirst({
+      where: {
+        user_id: id
+      }
+    })
   }
 
   update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+    return this.prisma.user.update({
+      data: {
+        ...updateUserDto
+      },
+      where: {
+        user_id: id
+      }
+    })
   }
 
   remove(id: number) {
-    return `This action removes a #${id} user`;
+    return this.prisma.user.delete({
+      where: {
+        user_id: id
+      }
+    })
+  }
+
+  updateAvatar(id: number, path: string) {
+    return this.prisma.user.update({
+      data: {
+        avatar: path
+      },
+      where: {
+        user_id: id
+      }
+    })
   }
 }

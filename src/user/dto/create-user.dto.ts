@@ -5,7 +5,9 @@ import {
     IsOptional,
     IsString,
     MaxLength,
-    MinLength
+    MinLength,
+    IsEmail,
+    IsPhoneNumber
 } from 'class-validator';
 
 export class CreateUserDto {
@@ -27,13 +29,14 @@ export class CreateUserDto {
     })
     password: string
 
-
+    @IsEmail()
     @ApiProperty({
         type: String,
         description: 'This field is required'
     })
     email: string
 
+    // @IsPhoneNumber()
     @ApiProperty({
         type: String,
         description: 'This field is required'

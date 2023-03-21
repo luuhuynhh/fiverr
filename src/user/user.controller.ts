@@ -1,12 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Res, HttpStatus, HttpCode, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, BadRequestException, Req, Query, NotFoundException, UseInterceptors, UploadedFile, FileTypeValidator, ParseFilePipe, MaxFileSizeValidator, HttpStatus, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { ApiTags, ApiCreatedResponse, ApiUnprocessableEntityResponse, ApiForbiddenResponse } from '@nestjs/swagger';
+import { ApiTags, ApiCreatedResponse, ApiUnprocessableEntityResponse, ApiForbiddenResponse, ApiHeader, ApiBearerAuth, ApiQuery, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { generateAccessToken, hashPassword } from 'src/utils';
 import { LoginUserDto } from './dto/login-user.dto';
 import * as bcrypt from 'bcrypt';
-import * as jwt from 'jsonwebtoken';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UploadFileDto } from './dto/upload-file.dto';
+const fs = require('fs');
 
 
 @ApiTags('User')
@@ -16,51 +18,187 @@ export class UserController {
 
   /**for auth */
   @Post('signup')
-  @ApiCreatedResponse({ description: 'Created Succesfully' })
-  @ApiUnprocessableEntityResponse({ description: 'Bad Request' })
-  @ApiForbiddenResponse({ description: 'Unauthorized Request' })
   async create(@Body() createUserDto: CreateUserDto) {
     const userDB = await this.userService.findByEmail(createUserDto.email)
     if (userDB) throw new BadRequestException("Email was registered account")
 
     const hashedPassword = await hashPassword(createUserDto.password);
-    return this.userService.create({
+    const newUser = this.userService.create({
       ...createUserDto,
       password: hashedPassword,
     });
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: "Create user success",
+      data: {
+        newUser
+      }
+    }
   }
 
   @Post('signin')
-  @ApiCreatedResponse({ description: 'Login Succesfully' })
-  @ApiUnprocessableEntityResponse({ description: 'Bad Request' })
-  @ApiForbiddenResponse({ description: 'Unauthorized Request' })
-  async login(@Body() user: LoginUserDto): Promise<{ access_token: string }> {
+  async login(@Body() user: LoginUserDto): Promise<any> {
     const foundUser = await this.userService.findByEmail(user.email);
     if (foundUser && await bcrypt.compare(user.password, foundUser.password)) {
       const token = await generateAccessToken(foundUser);
-      return { access_token: token };
+      return {
+        statusCode: HttpStatus.OK,
+        message: "Login success",
+        access_token: token
+      }
     }
     throw new BadRequestException("Invalid login information");
   }
   /**end auth */
 
+
+  @ApiHeader({
+    name: 'accessToken',
+    description: 'Bearer token',
+    required: true,
+  })
+  @ApiBearerAuth()
   @Get()
-  findAll() {
-    return this.userService.findAll();
+  @ApiQuery({
+    name: 'keyword',
+    description: 'The keyword for search name',
+    type: String,
+    required: false,
+  })
+  @ApiQuery({
+    name: 'offset',
+    description: 'The number to skip',
+    type: Number,
+    required: false,
+  })
+  @ApiQuery({
+    name: 'limit',
+    description: 'The size of page',
+    type: String,
+    required: false,
+  })
+  async findAll(@Query('offset') offset: number,
+    @Query('limit') limit: number,
+    @Query('keyword') keyword: string
+  ) {
+    const users: CreateUserDto[] = await this.userService.findAll({ offset, limit, keyword });
+    if (users && users.length) return {
+      statusCode: HttpStatus.OK,
+      message: "Query users success",
+      data: {
+        users
+      }
+    };
+    else throw new NotFoundException("Không tìm thấy User nào!")
   }
 
+  @ApiHeader({
+    name: 'accessToken',
+    description: 'Bearer token',
+    required: true,
+  })
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.userService.findOne(+id);
+  async findOne(@Param('id') id: number) {
+    if (Number.isNaN(+id)) throw new BadRequestException("Id phải là Number!")
+    const user = await this.userService.findOne(+id);
+    if (!user) throw new NotFoundException("Không tìm thấy User có Id tương ứng!")
+    return {
+      statusCode: HttpStatus.OK,
+      message: "Query user success",
+      data: { user }
+    };
   }
+
+  @ApiHeader({
+    name: 'accessToken',
+    description: 'Bearer token',
+    required: true,
+  })
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(+id, updateUserDto);
+  async update(@Req() req, @Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    if (Number.isNaN(+id)) throw new BadRequestException("Id phải là Number!")
+
+    const user = await this.userService.findByEmail(req.user.email);
+    if (user.user_id !== +id && user.role !== "ADMIN") {
+      throw new ForbiddenException("Bạn không có quyền")
+    }
+
+    const userDB = await this.userService.findOne(+id);
+    if (!userDB) throw new BadRequestException("User không tồn tại trong hệ thống!");
+
+    const userUpdated = await this.userService.update(+id, updateUserDto);
+    return {
+      statusCode: HttpStatus.OK,
+      message: "Update user success",
+      data: {
+        userUpdated
+      }
+    };
   }
 
+  @ApiHeader({
+    name: 'accessToken',
+    description: 'Bearer token',
+    required: true,
+  })
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userService.remove(+id);
+  async remove(@Req() req, @Param('id') id: string) {
+    if (Number.isNaN(+id)) throw new BadRequestException("Id phải là Number!")
+
+    const user = await this.userService.findByEmail(req.user.email);
+    if (user.user_id !== +id && user.role !== "ADMIN") {
+      throw new ForbiddenException("Bạn không có quyền")
+    }
+
+    const userDB = await this.userService.findOne(+id);
+    if (!userDB) throw new BadRequestException("User không tồn tại trong hệ thống!");
+
+    const userRemoved = await this.userService.remove(+id);
+    return {
+      statusCode: HttpStatus.OK,
+      message: "Remove user success",
+      data: {
+        userRemoved
+      }
+    };
   }
+
+  @Post('upload-avatar')
+  @ApiConsumes('multipart/form-data')
+  @ApiHeader({
+    name: 'accessToken',
+    description: 'Bearer token',
+    required: true,
+  })
+  @ApiBody({
+    description: 'File to upload',
+    type: UploadFileDto,
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadFile(@UploadedFile(
+    new ParseFilePipe({
+      validators: [
+        new FileTypeValidator({ fileType: 'image/*' }),
+      ],
+    }),
+  ) file: Express.Multer.File, @Req() req: any) {
+    if (!file) throw new BadRequestException("Upload image failed!");
+
+    const path = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+    const curUser = await this.userService.findByEmail(req.user.email);
+
+    if (!curUser) throw new UnauthorizedException("Vui lòng đăng nhập hệ thống");
+    const updatedUser = await this.userService.updateAvatar(curUser.user_id, path)
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: "Upload avatar success",
+      data: {
+        updatedUser
+      }
+    }
+  }
+
 }

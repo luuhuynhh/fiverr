@@ -1,14 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, BadRequestException, Req, Query, NotFoundException, UseInterceptors, UploadedFile, FileTypeValidator, ParseFilePipe, MaxFileSizeValidator, HttpStatus, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, BadRequestException, Req, Query, NotFoundException, UseInterceptors, UploadedFile, FileTypeValidator, ParseFilePipe, HttpStatus, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { ApiTags, ApiCreatedResponse, ApiUnprocessableEntityResponse, ApiForbiddenResponse, ApiHeader, ApiBearerAuth, ApiQuery, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiHeader, ApiBearerAuth, ApiQuery, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { generateAccessToken, hashPassword } from 'src/utils';
 import { LoginUserDto } from './dto/login-user.dto';
 import * as bcrypt from 'bcrypt';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadFileDto } from './dto/upload-file.dto';
-const fs = require('fs');
 
 
 @ApiTags('User')
@@ -58,7 +57,6 @@ export class UserController {
     description: 'Bearer token',
     required: true,
   })
-  @ApiBearerAuth()
   @Get()
   @ApiQuery({
     name: 'keyword',
@@ -115,7 +113,6 @@ export class UserController {
     description: 'Bearer token',
     required: true,
   })
-
   @Patch(':id')
   async update(@Req() req, @Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     if (Number.isNaN(+id)) throw new BadRequestException("Id phải là Number!")

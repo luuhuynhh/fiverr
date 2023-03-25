@@ -26,6 +26,9 @@ export class SkillController {
 
     if (userDB.role !== "ADMIN") throw new ForbiddenException("Bạn không có quyền thực hiện thao tác này")
 
+    const skillDB = await this.skillService.findByName(createSkillDto.skill_name);
+    if (skillDB) throw new BadRequestException("This skill name existed!");
+
     const newSkill = await this.skillService.create(createSkillDto);
 
     return {
@@ -99,6 +102,9 @@ export class SkillController {
   })
   @Patch(':id')
   async update(@Param('id') id: string, @Body() updateSkillDto: CreateSkillDto) {
+    const skillDB = await this.skillService.findByName(updateSkillDto.skill_name);
+    if (skillDB && skillDB.skill_id !== +id) throw new BadRequestException("This skill name existed!");
+
     const updatedSkill = await this.skillService.update(+id, updateSkillDto);
 
     return {

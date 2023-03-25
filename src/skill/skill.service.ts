@@ -51,4 +51,13 @@ export class SkillService {
       }
     })
   }
+
+  findByName(skill_name: string) {
+    skill_name = skill_name.toLowerCase();
+    return this.prisma.skill.findFirst({
+      where: {
+        skill_name
+      }
+    })
+  }
 }

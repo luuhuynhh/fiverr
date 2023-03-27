@@ -1,0 +1,11 @@
+export const GENDER = {
+    MALE: 'MALE',
+    FEMALE: 'FEMALE'
+}
+
+export const CATEGORY = {
+    FULLTIME: 'FULLTIME',
+    PARTTIME: 'PARTTIME',
+    INTERNSHIP: 'INTERNSHIP',
+    COLLPBORATION: 'COLLABORATION'
+}

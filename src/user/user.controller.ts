@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, BadRequestException,
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { ApiTags, ApiHeader, ApiBearerAuth, ApiQuery, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiHeader, ApiQuery, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { generateAccessToken, hashPassword } from 'src/utils';
 import { LoginUserDto } from './dto/login-user.dto';
 import * as bcrypt from 'bcrypt';

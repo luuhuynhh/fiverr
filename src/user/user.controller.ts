@@ -170,7 +170,7 @@ export class UserController {
     required: true,
   })
   @ApiBody({
-    description: 'File to upload',
+    description: 'Upload a job',
     type: UploadFileDto,
   })
   @UseInterceptors(FileInterceptor('file'))

@@ -6,9 +6,11 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthMiddleware } from './auth/auth.middleware';
 import { SkillModule } from './skill/skill.module';
 import { CategoryModule } from './category/category.module';
+import { JobModule } from './job/job.module';
+import { JobImageModule } from './job-image/job-image.module';
 
 @Module({
-  imports: [UserModule, PrismaModule, SkillModule, SkillModule, CategoryModule],
+  imports: [UserModule, PrismaModule, SkillModule, SkillModule, CategoryModule, JobModule, JobImageModule],
   controllers: [AppController],
   providers: [AppService],
 })

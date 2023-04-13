@@ -14,14 +14,14 @@ model category {
 }
 
 model hire_job {
-  id                    Int      @id @default(autoincrement())
+  id                    Int              @id @default(autoincrement())
   job                   Int
   employee              Int
-  hire_date             DateTime @db.Date
+  hire_date             DateTime         @db.Date
   is_solved             Boolean
-  is_done               Boolean
-  job_hire_job_jobTojob job      @relation("hire_job_jobTojob", fields: [job], references: [job_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Hire_Job")
-  user                  user     @relation(fields: [employee], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Hire_User")
+  status                hire_job_status?
+  job_hire_job_jobTojob job              @relation("hire_job_jobTojob", fields: [job], references: [job_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Hire_Job")
+  user                  user             @relation(fields: [employee], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Hire_User")
 
   @@index([job], map: "FK_Hire_Job")
   @@index([employee], map: "FK_Hire_User")
@@ -86,4 +86,9 @@ model user {
   hire_job  hire_job[]
   job       job[]
   review    review[]
+}
+
+enum hire_job_status {
+  resolve
+  reject
 }

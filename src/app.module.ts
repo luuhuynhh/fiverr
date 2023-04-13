@@ -8,9 +8,10 @@ import { SkillModule } from './skill/skill.module';
 import { CategoryModule } from './category/category.module';
 import { JobModule } from './job/job.module';
 import { JobImageModule } from './job-image/job-image.module';
+import { HireJobModule } from './hire_job/hire_job.module';
 
 @Module({
-  imports: [UserModule, PrismaModule, SkillModule, SkillModule, CategoryModule, JobModule, JobImageModule],
+  imports: [UserModule, PrismaModule, SkillModule, SkillModule, CategoryModule, JobModule, JobImageModule, HireJobModule],
   controllers: [AppController],
   providers: [AppService],
 })

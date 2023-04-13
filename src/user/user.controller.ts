@@ -22,7 +22,7 @@ export class UserController {
     if (userDB) throw new BadRequestException("Email was registered account")
 
     const hashedPassword = await hashPassword(createUserDto.password);
-    const newUser = this.userService.create({
+    const newUser = await this.userService.create({
       ...createUserDto,
       password: hashedPassword,
     });

@@ -137,11 +137,15 @@ export class JobController {
     const userBD = await this.userService.findByEmail(user.email);
     if (!userBD) throw new UnauthorizedException("Please login to use system");
 
-    const category = await this.categoryService.findOne(+job_category);
-    if (!category) throw new BadRequestException("Category doesn't exist")
+    if (job_category) {
+      const category = await this.categoryService.findOne(+job_category);
+      if (!category) throw new BadRequestException("Category doesn't exist")
+    }
 
     const jobDB = await this.jobService.findOne(+id);
     if (!jobDB) throw new NotFoundException("Job doesn't exist")
+
+    if (jobDB.creator !== userBD.user_id) throw new ForbiddenException("Forbidden")
 
     const images = files && files.length ? files.map(file => ({ path: `data:${file.mimetype};base64,${file.buffer.toString('base64')}`, job: +id })) : [];
 

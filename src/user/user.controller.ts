@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, BadRequestException, Req, Query, NotFoundException, UseInterceptors, UploadedFile, FileTypeValidator, ParseFilePipe, HttpStatus, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, BadRequestException, Req, Query, NotFoundException, UseInterceptors, UploadedFile, FileTypeValidator, ParseFilePipe, HttpStatus, ForbiddenException, UnauthorizedException, InternalServerErrorException } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -8,6 +8,7 @@ import { LoginUserDto } from './dto/login-user.dto';
 import * as bcrypt from 'bcrypt';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadFileDto } from './dto/upload-file.dto';
+import { ROLE } from 'src/config';
 
 
 @ApiTags('User')
@@ -18,39 +19,46 @@ export class UserController {
   /**for auth */
   @Post('signup')
   async create(@Body() createUserDto: CreateUserDto) {
-    const userDB = await this.userService.findByEmail(createUserDto.email)
-    if (userDB) throw new BadRequestException("Email was registered account")
+    try {
+      const userDB = await this.userService.findByEmail(createUserDto.email)
+      if (userDB) throw new BadRequestException("Email đã được đăng ký, vui lòng chọn đăng nhập")
 
-    const hashedPassword = await hashPassword(createUserDto.password);
-    const newUser = await this.userService.create({
-      ...createUserDto,
-      password: hashedPassword,
-    });
+      const hashedPassword = await hashPassword(createUserDto.password);
+      const newUser = await this.userService.create({
+        ...createUserDto,
+        password: hashedPassword,
+      });
 
-    return {
-      statusCode: HttpStatus.OK,
-      message: "Create user success",
-      data: {
-        newUser
+      return {
+        statusCode: HttpStatus.OK,
+        message: "Thêm User thành công",
+        data: {
+          newUser
+        }
       }
+    } catch (err) {
+      throw new InternalServerErrorException(err.message)
     }
   }
 
   @Post('signin')
   async login(@Body() user: LoginUserDto): Promise<any> {
-    const foundUser = await this.userService.findByEmail(user.email);
-    if (foundUser && await bcrypt.compare(user.password, foundUser.password)) {
-      const token = await generateAccessToken(foundUser);
-      return {
-        statusCode: HttpStatus.OK,
-        message: "Login success",
-        access_token: token
+    try {
+      const foundUser = await this.userService.findByEmail(user.email);
+      if (foundUser && await bcrypt.compare(user.password, foundUser.password)) {
+        const token = await generateAccessToken(foundUser);
+        return {
+          statusCode: HttpStatus.OK,
+          message: "Đăng nhập thành công",
+          access_token: token
+        }
       }
+      throw new BadRequestException("Thông tin đăng nhập không hợp lệ");
+    } catch (err) {
+      throw new InternalServerErrorException(err.message)
     }
-    throw new BadRequestException("Invalid login information");
   }
   /**end auth */
-
 
   @ApiHeader({
     name: 'accessToken',
@@ -60,7 +68,7 @@ export class UserController {
   @Get()
   @ApiQuery({
     name: 'keyword',
-    description: 'The keyword for search name',
+    description: 'Keyword for search user\'s name',
     type: String,
     required: false,
   })
@@ -80,15 +88,19 @@ export class UserController {
     @Query('limit') limit: number,
     @Query('keyword') keyword: string
   ) {
-    const users: CreateUserDto[] = await this.userService.findAll({ offset, limit, keyword });
-    if (users && users.length) return {
-      statusCode: HttpStatus.OK,
-      message: "Query users success",
-      data: {
-        users
-      }
-    };
-    else throw new NotFoundException("Không tìm thấy User nào!")
+    try {
+      const users: CreateUserDto[] = await this.userService.findAll({ offset, limit, keyword });
+      if (users && users.length) return {
+        statusCode: HttpStatus.OK,
+        message: "Truy vấn danh sách User thành công",
+        data: {
+          users
+        }
+      };
+      else throw new NotFoundException("Không tìm thấy User nào!")
+    } catch (err) {
+      throw new InternalServerErrorException(err.message)
+    }
   }
 
   @ApiHeader({
@@ -98,14 +110,18 @@ export class UserController {
   })
   @Get(':id')
   async findOne(@Param('id') id: number) {
-    if (Number.isNaN(+id)) throw new BadRequestException("Id phải là Number!")
-    const user = await this.userService.findOne(+id);
-    if (!user) throw new NotFoundException("Không tìm thấy User có Id tương ứng!")
-    return {
-      statusCode: HttpStatus.OK,
-      message: "Query user success",
-      data: { user }
-    };
+    try {
+      if (Number.isNaN(+id)) throw new BadRequestException("Id phải là Number!")
+      const user = await this.userService.findOne(+id);
+      if (!user) throw new NotFoundException("Không tìm thấy User có Id tương ứng!")
+      return {
+        statusCode: HttpStatus.OK,
+        message: "Truy vấn chi tiết User thành công",
+        data: { user }
+      };
+    } catch (err) {
+      throw new InternalServerErrorException(err.message)
+    }
   }
 
   @ApiHeader({
@@ -115,24 +131,28 @@ export class UserController {
   })
   @Patch(':id')
   async update(@Req() req, @Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    if (Number.isNaN(+id)) throw new BadRequestException("Id phải là Number!")
+    try {
+      if (Number.isNaN(+id)) throw new BadRequestException("Id phải là Number!")
 
-    const user = await this.userService.findByEmail(req.user.email);
-    if (user.user_id !== +id && user.role !== "ADMIN") {
-      throw new ForbiddenException("Bạn không có quyền")
-    }
-
-    const userDB = await this.userService.findOne(+id);
-    if (!userDB) throw new BadRequestException("User không tồn tại trong hệ thống!");
-
-    const userUpdated = await this.userService.update(+id, updateUserDto);
-    return {
-      statusCode: HttpStatus.OK,
-      message: "Update user success",
-      data: {
-        userUpdated
+      const user = await this.userService.findByEmail(req.user.email);
+      if (user.user_id !== +id && user.role !== ROLE.ADMIN) {
+        throw new ForbiddenException("Bạn không có quyền")
       }
-    };
+
+      const userDB = await this.userService.findOne(+id);
+      if (!userDB) throw new BadRequestException("User không tồn tại trong hệ thống!");
+
+      const userUpdated = await this.userService.update(+id, updateUserDto);
+      return {
+        statusCode: HttpStatus.OK,
+        message: "Cập nhật thông tin User thành công",
+        data: {
+          userUpdated
+        }
+      };
+    } catch (err) {
+      throw new InternalServerErrorException(err.message)
+    }
   }
 
   @ApiHeader({
@@ -142,24 +162,28 @@ export class UserController {
   })
   @Delete(':id')
   async remove(@Req() req, @Param('id') id: string) {
-    if (Number.isNaN(+id)) throw new BadRequestException("Id phải là Number!")
+    try {
+      if (Number.isNaN(+id)) throw new BadRequestException("Id phải là Number!")
 
-    const user = await this.userService.findByEmail(req.user.email);
-    if (user.user_id !== +id && user.role !== "ADMIN") {
-      throw new ForbiddenException("Bạn không có quyền")
-    }
-
-    const userDB = await this.userService.findOne(+id);
-    if (!userDB) throw new BadRequestException("User không tồn tại trong hệ thống!");
-
-    const userRemoved = await this.userService.remove(+id);
-    return {
-      statusCode: HttpStatus.OK,
-      message: "Remove user success",
-      data: {
-        userRemoved
+      const user = await this.userService.findByEmail(req.user.email);
+      if (user.user_id !== +id && user.role !== ROLE.ADMIN) {
+        throw new ForbiddenException("Bạn không có quyền")
       }
-    };
+
+      const userDB = await this.userService.findOne(+id);
+      if (!userDB) throw new BadRequestException("User không tồn tại trong hệ thống!");
+
+      const userRemoved = await this.userService.remove(+id);
+      return {
+        statusCode: HttpStatus.OK,
+        message: "Xóa User thành công",
+        data: {
+          userRemoved
+        }
+      };
+    } catch (err) {
+      throw new InternalServerErrorException(err.message)
+    }
   }
 
   @Post('upload-avatar')
@@ -170,7 +194,7 @@ export class UserController {
     required: true,
   })
   @ApiBody({
-    description: 'Upload a job',
+    description: 'Upload avatar',
     type: UploadFileDto,
   })
   @UseInterceptors(FileInterceptor('file'))
@@ -181,20 +205,24 @@ export class UserController {
       ],
     }),
   ) file: Express.Multer.File, @Req() req: any) {
-    if (!file) throw new BadRequestException("Upload image failed!");
+    try {
+      if (!file) throw new BadRequestException("Thêm ảnh không thành công");
 
-    const path = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
-    const curUser = await this.userService.findByEmail(req.user.email);
+      const path = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+      const curUser = await this.userService.findByEmail(req.user.email);
 
-    if (!curUser) throw new UnauthorizedException("Vui lòng đăng nhập hệ thống");
-    const updatedUser = await this.userService.updateAvatar(curUser.user_id, path)
+      if (!curUser) throw new UnauthorizedException("Vui lòng đăng nhập hệ thống");
+      const updatedUser = await this.userService.updateAvatar(curUser.user_id, path)
 
-    return {
-      statusCode: HttpStatus.OK,
-      message: "Upload avatar success",
-      data: {
-        updatedUser
+      return {
+        statusCode: HttpStatus.OK,
+        message: "Cập nhật avatar thành công",
+        data: {
+          updatedUser
+        }
       }
+    } catch (err) {
+      throw new InternalServerErrorException(err.message)
     }
   }
 

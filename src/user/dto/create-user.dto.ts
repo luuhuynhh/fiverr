@@ -36,7 +36,6 @@ export class CreateUserDto {
     })
     email: string
 
-    // @IsPhoneNumber()
     @ApiProperty({
         type: String,
         description: 'This field is required'
@@ -65,5 +64,5 @@ export class CreateUserDto {
         type: String,
         description: 'This field is optional'
     })
-    skills: string
+    skills?: string
 }

@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Req, UnauthorizedException, ForbiddenException, HttpStatus, Query, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Req, UnauthorizedException, ForbiddenException, HttpStatus, Query, BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { SkillService } from './skill.service';
 import { CreateSkillDto } from './dto/create-skill.dto';
 import { UpdateSkillDto } from './dto/update-skill.dto';
 import { ApiHeader, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { UserService } from 'src/user/user.service';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { ROLE } from 'src/config';
 
 @ApiTags("Skill")
 @Controller('skill')
@@ -18,25 +19,29 @@ export class SkillController {
   })
   @Post()
   async create(@Req() req, @Body() createSkillDto: CreateSkillDto) {
-    const user = req.user;
+    try {
+      const user = req.user;
 
-    const userDB = await new UserService(new PrismaService).findByEmail(user.email);
+      const userDB = await new UserService(new PrismaService).findByEmail(user.email);
 
-    if (!user || !userDB) throw new UnauthorizedException("Vui lòng đăng nhập hệ thống");
+      if (!user || !userDB) throw new UnauthorizedException("Vui lòng đăng nhập hệ thống");
 
-    if (userDB.role !== "ADMIN") throw new ForbiddenException("Bạn không có quyền thực hiện thao tác này")
+      if (userDB.role !== ROLE.ADMIN) throw new ForbiddenException("Bạn không có quyền thực hiện thao tác này")
 
-    const skillDB = await this.skillService.findByName(createSkillDto.skill_name);
-    if (skillDB) throw new BadRequestException("This skill name existed!");
+      const skillDB = await this.skillService.findByName(createSkillDto.skill_name);
+      if (skillDB) throw new BadRequestException("Tên skill đã tồn tại!");
 
-    const newSkill = await this.skillService.create(createSkillDto);
+      const newSkill = await this.skillService.create(createSkillDto);
 
-    return {
-      statusCode: HttpStatus.OK,
-      message: "Create new skill success",
-      data: {
-        newSkill
+      return {
+        statusCode: HttpStatus.OK,
+        message: "Thêm skill thành công",
+        data: {
+          newSkill
+        }
       }
+    } catch (err) {
+      throw new InternalServerErrorException(err.message)
     }
   }
 
@@ -48,7 +53,7 @@ export class SkillController {
   @Get()
   @ApiQuery({
     name: 'keyword',
-    description: 'The keyword for search skill name',
+    description: 'Keyword for search skill\'s name',
     type: String,
     required: false,
   })
@@ -67,14 +72,18 @@ export class SkillController {
   async findAll(@Query('offset') offset: number,
     @Query('limit') limit: number,
     @Query('keyword') keyword: string) {
-    const skills = await this.skillService.findAll({ offset, limit, keyword });
+    try {
+      const skills = await this.skillService.findAll({ offset, limit, keyword });
 
-    return {
-      statusCode: HttpStatus.OK,
-      message: "Query skill success",
-      data: {
-        skills
+      return {
+        statusCode: HttpStatus.OK,
+        message: "Truy vấn danh sách Skill thành công",
+        data: {
+          skills
+        }
       }
+    } catch (err) {
+      throw new InternalServerErrorException(err.message)
     }
   }
 
@@ -85,14 +94,18 @@ export class SkillController {
   })
   @Get(':id')
   async findOne(@Param('id') id: string) {
-    if (Number.isNaN(+id)) throw new BadRequestException("Id phải là Number!")
-    const user = await this.skillService.findOne(+id);
-    if (!user) throw new NotFoundException("Không tìm thấy Skill có Id tương ứng!")
-    return {
-      statusCode: HttpStatus.OK,
-      message: "Query skill success",
-      data: { user }
-    };
+    try {
+      if (Number.isNaN(+id)) throw new BadRequestException("Id phải là Number!")
+      const user = await this.skillService.findOne(+id);
+      if (!user) throw new NotFoundException("Không tìm thấy Skill có Id tương ứng!")
+      return {
+        statusCode: HttpStatus.OK,
+        message: "Truy vấn chi tiết Skill thành công",
+        data: { user }
+      };
+    } catch (err) {
+      throw new InternalServerErrorException(err.message)
+    }
   }
 
   @ApiHeader({
@@ -102,17 +115,26 @@ export class SkillController {
   })
   @Patch(':id')
   async update(@Param('id') id: string, @Body() updateSkillDto: CreateSkillDto) {
-    const skillDB = await this.skillService.findByName(updateSkillDto.skill_name);
-    if (skillDB && skillDB.skill_id !== +id) throw new BadRequestException("This skill name existed!");
+    try {
+      if (Number.isNaN(+id)) throw new BadRequestException("Id phải là Number!")
 
-    const updatedSkill = await this.skillService.update(+id, updateSkillDto);
+      const thisSkillDB = await this.skillService.findOne(+id);
+      if (!thisSkillDB) throw new BadRequestException("Không tìm thấy Skill cần cập nhật");
 
-    return {
-      statusCode: HttpStatus.OK,
-      message: "Update skill success",
-      data: {
-        updatedSkill
+      const skillDB = await this.skillService.findByName(updateSkillDto.skill_name);
+      if (skillDB && skillDB.skill_id !== +id) throw new BadRequestException("Tên Skill đã tồn tại");
+
+      const updatedSkill = await this.skillService.update(+id, updateSkillDto);
+
+      return {
+        statusCode: HttpStatus.OK,
+        message: "Cập nhật thông tin Skill thành công",
+        data: {
+          updatedSkill
+        }
       }
+    } catch (err) {
+      throw new InternalServerErrorException(err.message)
     }
   }
 
@@ -123,17 +145,21 @@ export class SkillController {
   })
   @Delete(':id')
   async remove(@Param('id') id: string) {
-    if (Number.isNaN(+id)) throw new BadRequestException("Id phải là Number!")
-    const skill = await this.skillService.findOne(+id);
-    if (!skill) throw new NotFoundException("Không tìm thấy Skill có Id tương ứng!")
+    try {
+      if (Number.isNaN(+id)) throw new BadRequestException("Id phải là Number!")
+      const skill = await this.skillService.findOne(+id);
+      if (!skill) throw new NotFoundException("Không tìm thấy Skill có Id tương ứng!")
 
-    const removedSkill = await this.skillService.remove(+id);
-    return {
-      statusCode: HttpStatus.OK,
-      message: "Remove skill success",
-      data: {
-        removedSkill
+      const removedSkill = await this.skillService.remove(+id);
+      return {
+        statusCode: HttpStatus.OK,
+        message: "Xóa skill thành công",
+        data: {
+          removedSkill
+        }
       }
+    } catch (err) {
+      throw new InternalServerErrorException(err.message)
     }
   }
 }

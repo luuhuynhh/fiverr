@@ -14,3 +14,12 @@ export const generateAccessToken = async (user: LoginUserDto): Promise<string> =
     const token = await jwt.sign(payload, 'FIVERR0.1', options);
     return token;
 }
+
+export const objectToArray = (object) => {
+    const arr = []
+    for (const key in object) {
+        arr.push(object[key])
+    }
+
+    return arr;
+}

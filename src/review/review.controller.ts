@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Req, UnauthorizedException, HttpStatus, Query, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Req, UnauthorizedException, HttpStatus, Query, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { ReviewService } from './review.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { UpdateReviewDto } from './dto/update-review.dto';
@@ -20,17 +20,21 @@ export class ReviewController {
     type: CreateReviewDto
   })
   async create(@Body() createReviewDto: CreateReviewDto, @Req() req) {
-    const user = req.user;
-    const userDB = await this.userService.findByEmail(user.email);
-    if (!userDB) throw new UnauthorizedException("Please login to use system")
-    const newReview = await this.reviewService.create({ ...createReviewDto, author: userDB.user_id, job: +createReviewDto.job, review_date: new Date(), star: +createReviewDto.star });
+    try {
+      const user = req.user;
+      const userDB = await this.userService.findByEmail(user.email);
+      if (!userDB) throw new UnauthorizedException("Vui lòng đăng nhập hệ thống")
+      const newReview = await this.reviewService.create({ ...createReviewDto, author: userDB.user_id, job: +createReviewDto.job, review_date: new Date(), star: +createReviewDto.star });
 
-    return {
-      status: HttpStatus.OK,
-      data: {
-        newReview
-      },
-      message: "Create review success"
+      return {
+        status: HttpStatus.OK,
+        data: {
+          newReview
+        },
+        message: "Thêm review thành công"
+      }
+    } catch (err) {
+      throw new InternalServerErrorException(err.message)
     }
   }
 
@@ -72,21 +76,25 @@ export class ReviewController {
     required: false,
   })
   async findAll(@Query() query) {
-    let { offset, limit, keyword, star_from, star_to } = query;
-    offset = +offset || 0;
-    limit = +limit || 0
-    star_from = +star_from || 0
-    star_to = +star_to || 0
-    const reviews = await this.reviewService.findAll({ offset, limit, keyword, star_from, star_to });
+    try {
+      let { offset, limit, keyword, star_from, star_to } = query;
+      offset = +offset || 0;
+      limit = +limit || 0
+      star_from = +star_from || 0
+      star_to = +star_to || 0
+      const reviews = await this.reviewService.findAll({ offset, limit, keyword, star_from, star_to });
 
-    if (!reviews || !reviews.length) throw new NotFoundException("Không tìm thấy reviews nào");
+      if (!reviews || !reviews.length) throw new NotFoundException("Không tìm thấy reviews nào");
 
-    return {
-      status: HttpStatus.OK,
-      message: "Truy vấn danh sách reviews thành công",
-      data: {
-        reviews
+      return {
+        status: HttpStatus.OK,
+        message: "Truy vấn danh sách Review thành công",
+        data: {
+          reviews
+        }
       }
+    } catch (err) {
+      throw new InternalServerErrorException(err.message)
     }
   }
 
@@ -97,14 +105,22 @@ export class ReviewController {
     required: true,
   })
   async findOne(@Param('id') id: string) {
-    const review = await this.reviewService.findOne(+id);
+    try {
+      if (Number.isNaN(+id)) throw new BadRequestException("Id phải là Number!")
 
-    return {
-      status: HttpStatus.OK,
-      data: {
-        review
-      },
-      message: 'Get review detail success'
+      const review = await this.reviewService.findOne(+id);
+
+      if (!review) throw new NotFoundException("Không tìm thấy Review có Id tương ứng")
+
+      return {
+        status: HttpStatus.OK,
+        data: {
+          review
+        },
+        message: 'Truy vấn thông tin Review thành công'
+      }
+    } catch (err) {
+      throw new InternalServerErrorException(err.message)
     }
   }
 
@@ -115,30 +131,48 @@ export class ReviewController {
     required: true,
   })
   @ApiBody({
-    description: "Update review (only content and star",
+    description: "Update review (only content and star)",
     type: UpdateReviewDto
   })
   async update(@Param('id') id: string, @Body() updateReviewDto: UpdateReviewDto) {
-    const updatedReview = await this.reviewService.update(+id, { ...updateReviewDto, ...(updateReviewDto.star && { star: +updateReviewDto.star }) });
-    return {
-      status: HttpStatus.OK,
-      message: "Updated review",
-      data: {
-        updatedReview
+    try {
+      if (Number.isNaN(+id)) throw new BadRequestException("Id phải là Number!")
+      const reviewBD = await this.reviewService.findOne(+id);
+      if (!reviewBD) throw new BadRequestException("Không tìm thấy Review cần cập nhật thông tin")
+
+      const updatedReview = await this.reviewService.update(+id, { ...updateReviewDto, ...(updateReviewDto.star && { star: +updateReviewDto.star }) });
+
+      return {
+        status: HttpStatus.OK,
+        message: "Cập nhật thông tin review thành công",
+        data: {
+          updatedReview
+        }
       }
+    } catch (err) {
+      throw new InternalServerErrorException(err.message)
     }
   }
 
   @Delete(':id')
   async remove(@Param('id') id: string) {
-    const review = await this.reviewService.remove(+id);
+    try {
+      if (Number.isNaN(+id)) throw new BadRequestException("Id phải là Number!")
 
-    return {
-      status: HttpStatus.OK,
-      data: {
-        review
-      },
-      messahe: "Removed review"
+      const reviewBD = await this.reviewService.findOne(+id);
+      if (!reviewBD) throw new BadRequestException("Không tìm thấy Review cần xóa")
+
+      const review = await this.reviewService.remove(+id);
+
+      return {
+        status: HttpStatus.OK,
+        data: {
+          review
+        },
+        messahe: "Xóa review thành công"
+      }
+    } catch (err) {
+      throw new InternalServerErrorException(err.message)
     }
   }
 }

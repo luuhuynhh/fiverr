@@ -12,13 +12,17 @@ export class HireJobService {
     })
   }
 
-  findAll({ offset, limit, is_solved, status }: { offset: number, limit: number, is_solved: boolean, status: STATUS }) {
+  findAll({ offset, limit, is_solved, status, employee, job, from_date, to_date }: { offset: number, limit: number, is_solved: boolean, status: STATUS, employee: number, job: number, from_date: Date, to_date: Date }) {
     return this.prisma.hire_job.findMany({
       ...(offset && { skip: offset }),
       ...(limit && { take: limit }),
       where: {
         ...(is_solved !== undefined && { is_solved: is_solved }),
-        ...(status && { status: status })
+        ...(status && { status: status }),
+        ...(employee && { employee: employee }),
+        ...(job && { job: job }),
+        ...(from_date && { hire_date: { gte: from_date } }),
+        ...(to_date && { hire_date: { lte: to_date } }),
       },
 
       orderBy: [{ id: 'desc' }]

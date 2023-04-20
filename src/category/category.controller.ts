@@ -1,7 +1,6 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, BadRequestException, HttpStatus, Query, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, BadRequestException, HttpStatus, Query, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
-import { UpdateCategoryDto } from './dto/update-category.dto';
 import { ApiHeader, ApiQuery, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Category')
@@ -17,15 +16,19 @@ export class CategoryController {
 
   @Post()
   async create(@Body() createCategoryDto: CreateCategoryDto) {
-    const categoryBD = await this.categoryService.findByName(createCategoryDto.category_name);
-    if (categoryBD) throw new BadRequestException("Category existed!");
-    const newCategory = await this.categoryService.create(createCategoryDto);
-    return {
-      status: HttpStatus.OK,
-      message: 'Create new category success!',
-      data: {
-        newCategory
+    try {
+      const categoryBD = await this.categoryService.findByName(createCategoryDto.category_name);
+      if (categoryBD) throw new BadRequestException("Category đã tồn tại!");
+      const newCategory = await this.categoryService.create(createCategoryDto);
+      return {
+        status: HttpStatus.OK,
+        message: 'Thêm category thành công',
+        data: {
+          newCategory
+        }
       }
+    } catch (err) {
+      throw new InternalServerErrorException(err.message)
     }
   }
 
@@ -37,7 +40,7 @@ export class CategoryController {
   })
   @ApiQuery({
     name: 'keyword',
-    description: 'The keyword for search name',
+    description: 'Keyword for search category\'s name',
     type: String,
     required: false,
   })
@@ -56,15 +59,20 @@ export class CategoryController {
   async findAll(@Query('offset') offset: number,
     @Query('limit') limit: number,
     @Query('keyword') keyword: string) {
-    const categorys = await this.categoryService.findAll({ offset: +offset, limit: +limit, keyword });
-    if (categorys && categorys.length) return {
-      statusCode: HttpStatus.OK,
-      message: "Query categories success",
-      data: {
-        categorys
-      }
-    };
-    else throw new NotFoundException("Không tìm thấy Category nào!")
+    try {
+      const categorys = await this.categoryService.findAll({ offset: +offset, limit: +limit, keyword });
+      if (categorys && categorys.length) return {
+        statusCode: HttpStatus.OK,
+        message: "Truy vấn danh sách category thành công",
+        data: {
+          categorys
+        }
+      };
+
+      else throw new NotFoundException("Không tìm thấy Category nào!")
+    } catch (err) {
+      throw new InternalServerErrorException(err.message)
+    }
   }
 
   @Get(':id')
@@ -74,14 +82,18 @@ export class CategoryController {
     required: true,
   })
   async findOne(@Param('id') id: string) {
-    const category = await this.categoryService.findOne(+id);
-    if (!category) throw new NotFoundException("Không tìm thấy Category có Id tương ứng!");
-    return {
-      status: HttpStatus.OK,
-      message: "Query category success",
-      data: {
-        category
+    try {
+      const category = await this.categoryService.findOne(+id);
+      if (!category) throw new NotFoundException("Không tìm thấy Category có Id tương ứng!");
+      return {
+        status: HttpStatus.OK,
+        message: "Try vấn thông tin category thành công",
+        data: {
+          category
+        }
       }
+    } catch (err) {
+      throw new InternalServerErrorException(err.message)
     }
   }
 
@@ -92,14 +104,18 @@ export class CategoryController {
     required: true,
   })
   async update(@Param('id') id: string, @Body() updateCategoryDto: CreateCategoryDto) {
-    const categoryDB = await this.categoryService.findByName(updateCategoryDto.category_name);
-    if (categoryDB && categoryDB.category_id !== +id) throw new BadRequestException("Category existed!");
-    const categoryUpdated = await this.categoryService.update(+id, updateCategoryDto);
+    try {
+      const categoryDB = await this.categoryService.findByName(updateCategoryDto.category_name);
+      if (categoryDB && categoryDB.category_id !== +id) throw new BadRequestException("Category name đã tồn tại!");
+      const categoryUpdated = await this.categoryService.update(+id, updateCategoryDto);
 
-    return {
-      status: HttpStatus.OK,
-      message: 'Update category success!',
-      data: { categoryUpdated }
+      return {
+        status: HttpStatus.OK,
+        message: 'Cập nhật category thành công!',
+        data: { categoryUpdated }
+      }
+    } catch (err) {
+      throw new InternalServerErrorException(err.message)
     }
   }
 
@@ -110,15 +126,19 @@ export class CategoryController {
     required: true,
   })
   async remove(@Param('id') id: string) {
-    const categoryDB = await this.categoryService.findOne(+id);
-    if (!categoryDB) throw new NotFoundException("Không tìm thấy category cần xóa!");
-    const categoryRemoved = await this.categoryService.remove(+id);
-    return {
-      status: HttpStatus.OK,
-      message: 'Remove category success!',
-      data: {
-        categoryRemoved
+    try {
+      const categoryDB = await this.categoryService.findOne(+id);
+      if (!categoryDB) throw new NotFoundException("Không tìm thấy category cần xóa!");
+      const categoryRemoved = await this.categoryService.remove(+id);
+      return {
+        status: HttpStatus.OK,
+        message: 'Xóa category thành công',
+        data: {
+          categoryRemoved
+        }
       }
+    } catch (err) {
+      throw new InternalServerErrorException(err.message)
     }
   }
 }

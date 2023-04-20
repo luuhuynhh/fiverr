@@ -69,7 +69,10 @@ export class CategoryController {
         }
       };
 
-      else throw new NotFoundException("Không tìm thấy Category nào!")
+      else return {
+        statusCode: HttpStatus.NOT_FOUND,
+        message: "Không tìm thấy Category nào"
+      }
     } catch (err) {
       throw new InternalServerErrorException(err.message)
     }
@@ -84,7 +87,11 @@ export class CategoryController {
   async findOne(@Param('id') id: string) {
     try {
       const category = await this.categoryService.findOne(+id);
-      if (!category) throw new NotFoundException("Không tìm thấy Category có Id tương ứng!");
+      if (!category) return {
+        statusCode: HttpStatus.NOT_FOUND,
+        message: "Không tìm thấy Category có Id tương ứng"
+      }
+
       return {
         status: HttpStatus.OK,
         message: "Try vấn thông tin category thành công",
@@ -106,7 +113,10 @@ export class CategoryController {
   async update(@Param('id') id: string, @Body() updateCategoryDto: CreateCategoryDto) {
     try {
       const categoryDB = await this.categoryService.findByName(updateCategoryDto.category_name);
-      if (categoryDB && categoryDB.category_id !== +id) throw new BadRequestException("Category name đã tồn tại!");
+      if (categoryDB && categoryDB.category_id !== +id) return {
+        status: HttpStatus.BAD_REQUEST,
+        message: "Category đã tồn tại"
+      }
       const categoryUpdated = await this.categoryService.update(+id, updateCategoryDto);
 
       return {
@@ -128,7 +138,10 @@ export class CategoryController {
   async remove(@Param('id') id: string) {
     try {
       const categoryDB = await this.categoryService.findOne(+id);
-      if (!categoryDB) throw new NotFoundException("Không tìm thấy category cần xóa!");
+      if (!categoryDB) return {
+        status: HttpStatus.NOT_FOUND,
+        message: "Không tìm thấy Category cần xóa"
+      }
       const categoryRemoved = await this.categoryService.remove(+id);
       return {
         status: HttpStatus.OK,

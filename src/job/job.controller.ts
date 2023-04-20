@@ -32,10 +32,16 @@ export class JobController {
       const { file: f, job_category, ...jobObject } = createJobDto;
       const user = req.user;
       const userBD = await this.userService.findByEmail(user.email);
-      if (!userBD) throw new UnauthorizedException("Vui lòng đăng nhập hệ thống");
+      if (!userBD) return {
+        status: HttpStatus.UNAUTHORIZED,
+        message: "Vui lòng đăng nhập hệ thống"
+      }
 
       const category = await this.categoryService.findOne(+job_category);
-      if (!category) throw new BadRequestException("Category không tồn tại")
+      if (!category) return {
+        status: HttpStatus.BAD_REQUEST,
+        message: "Category không tồn tại"
+      }
 
       const newJob = await this.jobService.create({ ...jobObject, job_price: +jobObject.job_price, job_category: +job_category, creator: userBD.user_id });
 
@@ -143,17 +149,29 @@ export class JobController {
       const { file: f, job_category, ...jobObject } = updateJobDto;
       const user = req.user;
       const userBD = await this.userService.findByEmail(user.email);
-      if (!userBD) throw new UnauthorizedException("Vui lòng đăng nhập vào hệ thống");
+      if (!userBD) return {
+        status: HttpStatus.UNAUTHORIZED,
+        message: "Vui lòng đăng nhập vào hệ thống"
+      }
 
       if (job_category) {
         const category = await this.categoryService.findOne(+job_category);
-        if (!category) throw new BadRequestException("Category không tồn tại")
+        if (!category) return {
+          status: HttpStatus.BAD_REQUEST,
+          message: "Category không tồn tại"
+        }
       }
 
       const jobDB = await this.jobService.findOne(+id);
-      if (!jobDB) throw new NotFoundException("Không tìm thấy Job cần cập nhật thông tin")
+      if (!jobDB) return {
+        status: HttpStatus.NOT_FOUND,
+        message: "Không tìm thấy Job cần cập nhật thông tin"
+      }
 
-      if (jobDB.creator !== userBD.user_id) throw new ForbiddenException("Bạn không có quyền thực hiện thao tác này")
+      if (jobDB.creator !== userBD.user_id) return {
+        status: HttpStatus.FORBIDDEN,
+        message: "Bạn không có quyền thực hiện thao tác này"
+      }
 
       const images = files && files.length ? files.map(file => ({ path: `data:${file.mimetype};base64,${file.buffer.toString('base64')}`, job: +id })) : [];
 
@@ -186,11 +204,17 @@ export class JobController {
   async remove(@Param('id') id: string, @Req() req) {
     try {
       const jobDB = await this.jobService.findOne(+id);
-      if (!jobDB) throw new NotFoundException("Không tìm thấy Job có Id tương ứng")
+      if (!jobDB) return {
+        status: HttpStatus.NOT_FOUND,
+        message: "Không tìm thấy Job có Id tương ứng"
+      }
 
       const user = req.user;
       const userBD = await this.userService.findByEmail(user.email);
-      if (jobDB.creator !== userBD.user_id) throw new ForbiddenException("Bạn không có quyền thực hiện thao tác này")
+      if (jobDB.creator !== userBD.user_id) return {
+        status: HttpStatus.FORBIDDEN,
+        message: "Bạn không có quyền thực hiện thao tác này"
+      }
 
       const images = await this.jobImageService.removeManyByJobId(+id);
       const job = await this.jobService.remove(+id)

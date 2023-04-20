@@ -1,0 +1,62 @@
+
+Huỳnh Nguyễn Thị Lựu - Node 28
+Capstone cuối khóa - Fiverr
+
+Video demo: https://youtu.be/Sz5KrpZIx0M
+Nội dung demo:
+
+1. Các api liên quan đến Auth
+- Đăng ký
+- Đăng nhập
+
+2. Các api đến Skill
+- Thêm Skill
+- Lấy danh sách Skill (có hỗ trợ phân trang, tìm kiếm theo tên)
+- Lấy thông tin chi tiết Skill
+- Cập nhật thông tin Skill
+- Xóa Skill
+
+3. Các api liên quan đến User
+- Lấy danh sách User (có hỗ trợ phân trang, tìm kiếm theo tên)
+- Lấy thông tin chi tiết User
+- Cập nhật thông tin User
+- Upload avatar
+- Xóa User
+
+4. Các api liên quan đến Category
+- Thêm Category
+- Lấy danh sách Category (có hỗ trợ phân trang, tìm kiếm theo tên)
+- Lấy thông tin chi tiết Category
+- Cập nhật thông tin Category
+- Xóa Category
+
+5. Các api liên quan đến Job
+- Thêm Job
+- Lấy danh sách Job (có hỗ trợ phân trang, tìm kiếm theo tên)
+- Lấy thông tin chi tiết Job
+- Cập nhật thông tin Job
+- Xóa Job
+
+6. Các api liên quan đến HireJob
+- Thêm HireJob (gửi request ứng tuyển Job)
+- Lấy danh sách HireJob
+	+ Có hỗ trợ phân trang, tìm kiếm theo tên
+	+ Filter theo trạng thái is_solved (đã duyệt qua request chưa)
+	+ Filter theo Employee gửi request (user_id)
+	+ Filter theo Job (job_id)
+	+ Filter theo range ngày gửi request (hire_date)
+- Lấy thông tin chi tiết HireJob
+- Cập nhật thông tin HireJob
+- Xóa HireJob
+
+7. Các api liên quan đến Review
+- Thêm Review
+- Lấy danh sách Review
+	+ Có hỗ trợ phân trang, tìm kiếm theo content
+	+ Filter theo Job
+	+ Filter theo range số sao đánh giá (Star)
+- Lấy thông tin chi tiết Review
+- Cập nhật thông tin chi tiết Review
+- Xóa Review
+
+Cảm ơn mentor đã xem ạ

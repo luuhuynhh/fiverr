@@ -25,10 +25,16 @@ export class HireJobController {
     try {
       const user = req.user;
       const userDB = await this.userService.findByEmail(user.email);
-      if (!userDB) throw new UnauthorizedException("Vui lòng đăng nhập vào hệ thống")
+      if (!userDB) return {
+        status: HttpStatus.UNAUTHORIZED,
+        message: "Vui lòng đăng nhập vào hệ thống"
+      }
 
       const jobDB = await this.jobService.findOne(+createHireJobDto.job);
-      if (!jobDB) throw new BadRequestException("Không tìm thấy Job với Id tương ứng");
+      if (!jobDB) return {
+        status: HttpStatus.BAD_REQUEST,
+        message: "Không tìm thấy Job có Id tương ứng"
+      }
 
       const newRequest = await this.hireJobService.create({ ...createHireJobDto, job: +createHireJobDto.job, employee: userDB.user_id, hire_date: new Date(), is_solved: false });
 
@@ -86,7 +92,10 @@ export class HireJobController {
       if (is_solved) is_solved = is_solved + '' === 'true' ? true : false;
       const hireJobs = await this.hireJobService.findAll({ offset: +offset, limit: +limit, is_solved, status, employee: +employee, job: +job, from_date: from_date ? new Date(from_date) : null, to_date: to_date ? new Date(to_date) : null });
 
-      if (!hireJobs || !hireJobs.length) throw new NotFoundException("Không tìm thấy hire job nào")
+      if (!hireJobs || !hireJobs.length) return {
+        status: HttpStatus.NOT_FOUND,
+        message: "Không tìm thấy Hire Job"
+      }
 
       return {
         status: HttpStatus.OK,
@@ -109,7 +118,10 @@ export class HireJobController {
   async findOne(@Param('id') id: string) {
     try {
       const hireJob = await this.hireJobService.findOne(+id);
-      if (!hireJob) throw new NotFoundException("Không tìm thấy hire job ứng với Id")
+      if (!hireJob) return {
+        status: HttpStatus.NOT_FOUND,
+        message: "Không tìm thấy Hire Job có Id tương ứng"
+      }
 
       return {
         status: HttpStatus.OK,
@@ -158,7 +170,10 @@ export class HireJobController {
   async remove(@Param('id') id: string) {
     try {
       const hireJobDB = await this.hireJobService.findOne(+id);
-      if (!hireJobDB) throw new BadRequestException("Không tìm thấy hire job cần xóa")
+      if (!hireJobDB) return {
+        status: HttpStatus.BAD_REQUEST,
+        message: "Không tìm thấy Hire Job cần xóa"
+      }
 
       const removedHireJob = await this.hireJobService.remove(+id);
       return {

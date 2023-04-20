@@ -13,7 +13,7 @@ export class ReviewService {
   }
 
   findAll(query: any) {
-    let { offset, limit, keyword, star_from, star_to } = query;
+    let { offset, limit, keyword, star_from, star_to, job } = query;
     return this.prisma.review.findMany({
       where: {
         ...(keyword && {
@@ -23,6 +23,7 @@ export class ReviewService {
         }),
         ...(star_from && { star: { gte: star_from } }),
         ...(star_to && { star: { lte: star_to } }),
+        ...(job && { job: job }),
       },
       ...(offset && { skip: offset }),
       ...(limit && { take: limit }),

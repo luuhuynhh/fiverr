@@ -146,9 +146,15 @@ export class SkillController {
   @Delete(':id')
   async remove(@Param('id') id: string) {
     try {
-      if (Number.isNaN(+id)) throw new BadRequestException("Id phải là Number!")
+      if (Number.isNaN(+id)) return {
+        status: HttpStatus.BAD_REQUEST,
+        message: "Id phải là Number"
+      }
       const skill = await this.skillService.findOne(+id);
-      if (!skill) throw new NotFoundException("Không tìm thấy Skill có Id tương ứng!")
+      if (!skill) return {
+        status: HttpStatus.NOT_FOUND,
+        message: "Không tìm thấy Skill có Id tương ứng"
+      }
 
       const removedSkill = await this.skillService.remove(+id);
       return {
